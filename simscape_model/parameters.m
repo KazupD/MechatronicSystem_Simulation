@@ -1,0 +1,15 @@
+Cm = 0.1;
+J_shaft = 0.012;
+Ja = 0.001;
+La = 0.047;
+Ra = 0.5;
+b_shaft = 2.21;
+b_spring = 1;
+ba = 0.01;
+g = 9.81;
+k_spring = 2*10^6;
+lower_limit = 0;
+m = 2;
+r_shaft = 0.1;
+upper_limit = 5;
+time_step = 0.01;
