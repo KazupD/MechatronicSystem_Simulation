@@ -6,12 +6,12 @@ slprj/**
 simscape_model/slprj/
 simscape_model/slprj/**
 
-generated_code_for_rpi/**
+generated_code_simscape/**
 
-!generated_code_for_rpi/hw_interface/
-!generated_code_for_rpi/hw_interface/**
+!generated_code_simscape/hw_interface/
+!generated_code_simscape/hw_interface/**
 
-!generated_code_for_rpi/makefile.mk
-!generated_code_for_rpi/ert_main.c
-!generated_code_for_rpi/mechatronic_system.c
-!generated_code_for_rpi/mechatronic_system.h
+!generated_code_simscape/makefile.mk
+!generated_code_simscape/ert_main.c
+!generated_code_simscape/mechatronic_system.c
+!generated_code_simscape/mechatronic_system.h
