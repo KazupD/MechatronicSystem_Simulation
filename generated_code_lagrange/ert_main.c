@@ -18,26 +18,39 @@
  */
 
 #include <stddef.h>
-#include <stdio.h>            /* This example main program uses printf/fflush */
-#include "mechatronic_system_ss.h"     /* Model header file */
+#include <stdio.h>
+#include "mechatronic_system_ss.h"
+#include <string.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <linux/sched.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <math.h>
+#include <time.h>
+#include <hw_interface/gpio_utils.h>
 
-/*
- * Associating rt_OneStep with a real-time clock or interrupt service routine
- * is what makes the generated code "real-time".  The function rt_OneStep is
- * always associated with the base rate of the model.  Subrates are managed
- * by the base rate from inside the generated code.  Enabling/disabling
- * interrupts and floating point context switches are target specific.  This
- * example code indicates where these should take place relative to executing
- * the generated code step function.  Overrun behavior should be tailored to
- * your application needs.  This example simply sets an error status in the
- * real-time model and returns from rt_OneStep.
- */
+
+#define NANOSECONDS_IN_SECOND 1000000000
+#define INTERVAL_NS 2000000 // 2 milliseconds
+
+
+struct sched_attr {
+    uint32_t size;
+    uint32_t sched_policy;
+    uint64_t sched_flags;
+    int32_t sched_nice;
+    uint32_t sched_priority;
+    uint64_t sched_runtime;
+    uint64_t sched_deadline;
+    uint64_t sched_period;
+};
+
+
 void rt_OneStep(void);
 void rt_OneStep(void)
 {
   static boolean_T OverrunFlag = false;
-
-  /* Disable interrupts here */
 
   /* Check for overrun */
   if (OverrunFlag) {
@@ -47,44 +60,94 @@ void rt_OneStep(void)
 
   OverrunFlag = true;
 
-  /* Save FPU context here (if necessary) */
-  /* Re-enable timer or interrupt here */
   /* Set model inputs here */
+
+  if(read_value(21) == 1){
+    mechatronic_system_ss_U.Ug = mechatronic_system_ss_U.Ug_max;
+  }
+  else{
+    mechatronic_system_ss_U.Ug = 0.0;
+  }
 
   /* Step the model */
   mechatronic_system_ss_step();
 
   /* Get model outputs here */
 
+  printf("Time %.3f [s]\n", (float)(mechatronic_system_ss_M->Timing.clockTick0)*0.002);
+
+  printf("Motor current %.3f [A]\n", mechatronic_system_ss_Y.motor_current);
+
+  printf("Shaft pos %.3f [rad]\n", mechatronic_system_ss_Y.shaft_pos);
+  printf("Shaft vel %.3f [rad/s]\n", mechatronic_system_ss_Y.shaft_vel);
+
+  printf("Mass pos %.3f [m]\n", mechatronic_system_ss_Y.mass_pos);
+  printf("Mass vel %.3f [m/s]\n", mechatronic_system_ss_Y.mass_vel);
+  
+
   /* Indicate task complete */
   OverrunFlag = false;
 
-  /* Disable interrupts here */
-  /* Restore FPU context here (if necessary) */
-  /* Enable interrupts here */
 }
 
-/*
- * The example main function illustrates what is required by your
- * application code to initialize, execute, and terminate the generated code.
- * Attaching rt_OneStep to a real-time clock is target specific. This example
- * illustrates how you do this relative to initializing the model.
- */
+static int sched_setattr(pid_t pid, const struct sched_attr *attr, unsigned int flags)
+{
+    return syscall (SYS_sched_setattr, pid, attr, flags);
+}
+
 int_T main(int_T argc, const char *argv[])
 {
   /* Unused arguments */
   (void)(argc);
   (void)(argv);
 
+  struct sched_attr attr;
+  memset (&attr, 0, sizeof (struct sched_attr));
+
+  attr.size = sizeof (attr);
+  attr.sched_policy = SCHED_DEADLINE;
+  attr.sched_runtime = 1 * 1000 * 1000;
+  attr.sched_period = 2 * 1000 * 1000;
+  attr.sched_deadline = 1 * 1000 * 1000;
+
+  int res;
+
+  res = sched_setattr(getpid(), &attr, 0);
+  if (res < 0) {
+      printf("Scheduling failed\n");
+      perror("ERROR: ");
+      return 1;
+  }
+
   /* Initialize model */
   mechatronic_system_ss_initialize();
+  mechatronic_system_ss_U.Enable = 1;
+  mechatronic_system_ss_U.Ug_max = 24.0;
 
-  /* Simulating the model step behavior (in non real-time) to
-   *  simulate model behavior at stop time.
-   */
-  while ((rtmGetErrorStatus(mechatronic_system_ss_M) == (NULL)) &&
-         !rtmGetStopRequested(mechatronic_system_ss_M)) {
+  export_gpio(21);
+  set_direction(21, "in");
+
+  struct timespec start, end;
+  int step_counter = 0;
+  
+  while ((rtmGetErrorStatus(mechatronic_system_ss_M) == (NULL)) && !rtmGetStopRequested(mechatronic_system_ss_M)) {
+    
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    printf("---- Step %d ----\n", step_counter);
     rt_OneStep();
+    step_counter++;
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    long long elapsed_ns = (end.tv_sec - start.tv_sec) * NANOSECONDS_IN_SECOND + (end.tv_nsec - start.tv_nsec);
+
+    printf("Computation took %lld [ns]\n", elapsed_ns);
+    printf("Percent : %.2f\n\n\n", ((float)elapsed_ns/(float)INTERVAL_NS)*100.0);
+
+    fflush(0);
+    sched_yield();
+
   }
 
   /* Terminate model */
@@ -92,8 +155,3 @@ int_T main(int_T argc, const char *argv[])
   return 0;
 }
 
-/*
- * File trailer for generated code.
- *
- * [EOF]
- */

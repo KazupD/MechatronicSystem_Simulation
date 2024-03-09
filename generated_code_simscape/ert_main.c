@@ -32,7 +32,7 @@
 #include <hw_interface/gpio_utils.h>
 
 #define NANOSECONDS_IN_SECOND 1000000000
-#define INTERVAL_NS 10000000 // 10 milliseconds
+#define INTERVAL_NS 2000000 // 2 milliseconds
 
 
 struct sched_attr {
@@ -76,7 +76,7 @@ void rt_OneStep(void)
 
   /* Get model outputs here */
 
-  printf("Time %.3f [s]\n", (float)(mechatronic_system_M->Timing.clockTick0)*0.01);
+  printf("Time %.3f [s]\n", (float)(mechatronic_system_M->Timing.clockTick0)*0.002);
 
   printf("Motor velocity %.3f [rad/s]\n", mechatronic_system_Y.motor_pos);
   printf("Motor current %.3f [A]\n", mechatronic_system_Y.motor_current);
@@ -112,8 +112,8 @@ int_T main(int_T argc, const char *argv[])
   attr.size = sizeof (attr);
   attr.sched_policy = SCHED_DEADLINE;
   attr.sched_runtime = 1 * 1000 * 1000;
-  attr.sched_period = 10 * 1000 * 1000;
-  attr.sched_deadline = 2 * 1000 * 1000;
+  attr.sched_period = 2 * 1000 * 1000;
+  attr.sched_deadline = 1 * 1000 * 1000;
 
   int res;
 
