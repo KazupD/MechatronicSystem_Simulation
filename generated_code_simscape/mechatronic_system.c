@@ -7,9 +7,9 @@
  *
  * Code generated for Simulink model 'mechatronic_system'.
  *
- * Model version                  : 1.15
+ * Model version                  : 1.20
  * Simulink Coder version         : 23.2 (R2023b) 01-Aug-2023
- * C/C++ source code generated on : Wed Mar  6 18:41:30 2024
+ * C/C++ source code generated on : Sat Mar  9 20:14:44 2024
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -51,7 +51,7 @@ void mechatronic_system_step(void)
   char *msg;
   char *msg_0;
   char *msg_1;
-  real_T tmp_3[29];
+  real_T tmp_3[30];
   real_T tmp_0[12];
   real_T tmp_5[12];
   real_T rtb_OUTPUT_1_0[6];
@@ -301,7 +301,7 @@ void mechatronic_system_step(void)
     mechatronic_system_B.StateSpace_o2 = (real_T)switch_status[0];
   }
 
-  /* Outport: '<Root>/Out3' incorporates:
+  /* Outport: '<Root>/motor_torque' incorporates:
    *  Constant: '<S16>/Constant'
    *  Product: '<S16>/Product1'
    */
@@ -309,7 +309,7 @@ void mechatronic_system_step(void)
     0.1;
 
   /* SimscapeInputBlock: '<S34>/INPUT_1_1_1' incorporates:
-   *  Outport: '<Root>/Out3'
+   *  Outport: '<Root>/motor_torque'
    */
   mechatronic_system_B.INPUT_1_1_1[0] = mechatronic_system_Y.motor_torque;
   mechatronic_system_B.INPUT_1_1_1[1] = 0.0;
@@ -344,13 +344,13 @@ void mechatronic_system_step(void)
    *  SimscapeExecutionBlock: '<S34>/OUTPUT_1_0'
    */
   simulationData = (NeslSimulationData *)mechatronic_system_DW.STATE_1_SimData;
-  time_tmp = ((mechatronic_system_M->Timing.clockTick0) * 0.01);
+  time_tmp = ((mechatronic_system_M->Timing.clockTick0) * 0.002);
   time = time_tmp;
   simulationData->mData->mTime.mN = 1;
   simulationData->mData->mTime.mX = &time;
   simulationData->mData->mContStates.mN = 0;
   simulationData->mData->mContStates.mX = NULL;
-  simulationData->mData->mDiscStates.mN = 16;
+  simulationData->mData->mDiscStates.mN = 17;
   simulationData->mData->mDiscStates.mX =
     &mechatronic_system_DW.STATE_1_Discrete[0];
   simulationData->mData->mModeVector.mN = 1;
@@ -385,12 +385,12 @@ void mechatronic_system_step(void)
   simulationData->mData->mInputValues.mX = &tmp_0[0];
   simulationData->mData->mInputOffsets.mN = 4;
   simulationData->mData->mInputOffsets.mX = &tmp_1[0];
-  simulationData->mData->mOutputs.mN = 17;
+  simulationData->mData->mOutputs.mN = 18;
   simulationData->mData->mOutputs.mX = &mechatronic_system_B.STATE_1[0];
   simulationData->mData->mTolerances.mN = 0;
   simulationData->mData->mTolerances.mX = NULL;
   simulationData->mData->mCstateHasChanged = false;
-  time_tmp_0 = ((mechatronic_system_M->Timing.clockTick0) * 0.01);
+  time_tmp_0 = ((mechatronic_system_M->Timing.clockTick0) * 0.002);
   time_0 = time_tmp_0;
   simulationData->mData->mTime.mN = 1;
   simulationData->mData->mTime.mX = &time_0;
@@ -454,9 +454,9 @@ void mechatronic_system_step(void)
   tmp_3[10] = mechatronic_system_B.INPUT_3_1_1[2];
   tmp_3[11] = mechatronic_system_B.INPUT_3_1_1[3];
   tmp_4[3] = 12;
-  memcpy(&tmp_3[12], &mechatronic_system_B.STATE_1[0], 17U * sizeof(real_T));
-  tmp_4[4] = 29;
-  simulationData->mData->mInputValues.mN = 29;
+  memcpy(&tmp_3[12], &mechatronic_system_B.STATE_1[0], 18U * sizeof(real_T));
+  tmp_4[4] = 30;
+  simulationData->mData->mInputValues.mN = 30;
   simulationData->mData->mInputValues.mX = &tmp_3[0];
   simulationData->mData->mInputOffsets.mN = 5;
   simulationData->mData->mInputOffsets.mX = &tmp_4[0];
@@ -486,28 +486,28 @@ void mechatronic_system_step(void)
     }
   }
 
-  /* Outport: '<Root>/Out5' */
+  /* Outport: '<Root>/shaft_vel' */
   mechatronic_system_Y.shaft_vel = rtb_OUTPUT_1_0[1];
 
-  /* Outport: '<Root>/Out4' */
+  /* Outport: '<Root>/shaft_pos' */
   mechatronic_system_Y.shaft_pos = rtb_OUTPUT_1_0[0];
 
-  /* Outport: '<Root>/Out6' */
+  /* Outport: '<Root>/shaft_acc' */
   mechatronic_system_Y.shaft_acc = rtb_OUTPUT_1_0[2];
 
-  /* Outport: '<Root>/Out7' */
+  /* Outport: '<Root>/mass_pos' */
   mechatronic_system_Y.mass_pos = rtb_OUTPUT_1_0[4];
 
-  /* Outport: '<Root>/Out8' */
+  /* Outport: '<Root>/mass_vel' */
   mechatronic_system_Y.mass_vel = rtb_OUTPUT_1_0[5];
 
-  /* Outport: '<Root>/Out9' */
+  /* Outport: '<Root>/mass_acc' */
   mechatronic_system_Y.mass_acc = rtb_OUTPUT_1_0[3];
 
-  /* Outport: '<Root>/Out2' */
+  /* Outport: '<Root>/motor_current' */
   mechatronic_system_Y.motor_current = mechatronic_system_B.StateSpace_o1[1];
 
-  /* Outport: '<Root>/Out1' incorporates:
+  /* Outport: '<Root>/motor_pos' incorporates:
    *  Delay: '<Root>/Delay'
    */
   mechatronic_system_Y.motor_pos = mechatronic_system_DW.Delay_DSTATE;
@@ -560,7 +560,7 @@ void mechatronic_system_step(void)
   simulationData->mData->mTime.mX = &time_3;
   simulationData->mData->mContStates.mN = 0;
   simulationData->mData->mContStates.mX = NULL;
-  simulationData->mData->mDiscStates.mN = 16;
+  simulationData->mData->mDiscStates.mN = 17;
   simulationData->mData->mDiscStates.mX =
     &mechatronic_system_DW.STATE_1_Discrete[0];
   simulationData->mData->mModeVector.mN = 1;
@@ -611,7 +611,7 @@ void mechatronic_system_step(void)
 
   /* Update absolute time for base rate */
   /* The "clockTick0" counts the number of times the code of this task has
-   * been executed. The resolution of this integer timer is 0.01, which is the step size
+   * been executed. The resolution of this integer timer is 0.002, which is the step size
    * of the task. Size of "clockTick0" ensures timer will not overflow during the
    * application lifespan selected.
    */
@@ -702,12 +702,12 @@ void mechatronic_system_initialize(void)
     modelParameters.mUseSimState = false;
     modelParameters.mLinTrimCompile = false;
     modelParameters.mLoggingMode = SSC_LOGGING_OFF;
-    modelParameters.mRTWModifiedTimeStamp = 6.31647305E+8;
+    modelParameters.mRTWModifiedTimeStamp = 6.31830188E+8;
     modelParameters.mUseModelRefSolver = false;
     modelParameters.mTargetFPGAHIL = false;
     tmp_2 = 0.001;
     modelParameters.mSolverTolerance = tmp_2;
-    tmp_2 = 0.01;
+    tmp_2 = 0.002;
     modelParameters.mFixedStepSize = tmp_2;
     tmp_0 = false;
     modelParameters.mVariableStepSolver = tmp_0;
@@ -754,12 +754,12 @@ void mechatronic_system_initialize(void)
     modelParameters_0.mUseSimState = false;
     modelParameters_0.mLinTrimCompile = false;
     modelParameters_0.mLoggingMode = SSC_LOGGING_OFF;
-    modelParameters_0.mRTWModifiedTimeStamp = 6.31647305E+8;
+    modelParameters_0.mRTWModifiedTimeStamp = 6.31830188E+8;
     modelParameters_0.mUseModelRefSolver = false;
     modelParameters_0.mTargetFPGAHIL = false;
     tmp_2 = 0.001;
     modelParameters_0.mSolverTolerance = tmp_2;
-    tmp_2 = 0.01;
+    tmp_2 = 0.002;
     modelParameters_0.mFixedStepSize = tmp_2;
     tmp_0 = false;
     modelParameters_0.mVariableStepSolver = tmp_0;

@@ -1,17 +1,33 @@
 
 *.slxc
 
+packngo_buffer_simscape
+packngo_buffer_simscape/**
+packngo_buffer_lagrange
+packngo_buffer_lagrange/**
+
 slpjr
 slprj/**
 simscape_model/slprj/
 simscape_model/slprj/**
+lagrange_model/slprj/
+lagrange_model/slprj/**
 
 generated_code_simscape/**
+generated_code_lagrange/**
 
 !generated_code_simscape/hw_interface/
 !generated_code_simscape/hw_interface/**
+
+!generated_code_lagrange/hw_interface/
+!generated_code_lagrange/hw_interface/**
 
 !generated_code_simscape/makefile.mk
 !generated_code_simscape/ert_main.c
 !generated_code_simscape/mechatronic_system.c
 !generated_code_simscape/mechatronic_system.h
+
+!generated_code_lagrange/makefile.mk
+!generated_code_lagrange/ert_main.c
+!generated_code_lagrange/mechatronic_system_ss.c
+!generated_code_lagrange/mechatronic_system_ss.h

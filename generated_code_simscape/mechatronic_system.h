@@ -7,9 +7,9 @@
  *
  * Code generated for Simulink model 'mechatronic_system'.
  *
- * Model version                  : 1.15
+ * Model version                  : 1.20
  * Simulink Coder version         : 23.2 (R2023b) 01-Aug-2023
- * C/C++ source code generated on : Wed Mar  6 18:41:30 2024
+ * C/C++ source code generated on : Sat Mar  9 20:14:44 2024
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -46,7 +46,7 @@ typedef struct {
   real_T StateSpace_o2;                /* '<S35>/State-Space' */
   real_T INPUT_1_1_1[4];               /* '<S34>/INPUT_1_1_1' */
   real_T INPUT_3_1_1[4];               /* '<S34>/INPUT_3_1_1' */
-  real_T STATE_1[17];                  /* '<S34>/STATE_1' */
+  real_T STATE_1[18];                  /* '<S34>/STATE_1' */
 } B_mechatronic_system_T;
 
 /* Block states (default storage) for system '<Root>' */
@@ -56,7 +56,7 @@ typedef struct {
   real_T StateSpace_DSTATE[2];         /* '<S35>/State-Space' */
   real_T INPUT_1_1_1_Discrete[2];      /* '<S34>/INPUT_1_1_1' */
   real_T INPUT_3_1_1_Discrete[2];      /* '<S34>/INPUT_3_1_1' */
-  real_T STATE_1_Discrete[16];         /* '<S34>/STATE_1' */
+  real_T STATE_1_Discrete[17];         /* '<S34>/STATE_1' */
   real_T OUTPUT_1_0_Discrete;          /* '<S34>/OUTPUT_1_0' */
   struct {
     void *AS;
@@ -140,15 +140,15 @@ typedef struct {
 
 /* External outputs (root outports fed by signals with default storage) */
 typedef struct {
-  real_T motor_pos;                    /* '<Root>/Out1' */
-  real_T motor_current;                /* '<Root>/Out2' */
-  real_T motor_torque;                 /* '<Root>/Out3' */
-  real_T shaft_pos;                    /* '<Root>/Out4' */
-  real_T shaft_vel;                    /* '<Root>/Out5' */
-  real_T shaft_acc;                    /* '<Root>/Out6' */
-  real_T mass_pos;                     /* '<Root>/Out7' */
-  real_T mass_vel;                     /* '<Root>/Out8' */
-  real_T mass_acc;                     /* '<Root>/Out9' */
+  real_T motor_pos;                    /* '<Root>/motor_pos' */
+  real_T motor_current;                /* '<Root>/motor_current' */
+  real_T motor_torque;                 /* '<Root>/motor_torque' */
+  real_T shaft_pos;                    /* '<Root>/shaft_pos' */
+  real_T shaft_vel;                    /* '<Root>/shaft_vel' */
+  real_T shaft_acc;                    /* '<Root>/shaft_acc' */
+  real_T mass_pos;                     /* '<Root>/mass_pos' */
+  real_T mass_vel;                     /* '<Root>/mass_vel' */
+  real_T mass_acc;                     /* '<Root>/mass_acc' */
 } ExtY_mechatronic_system_T;
 
 /* Real-time Model Data Structure */
