@@ -30,6 +30,7 @@
 #include <math.h>
 #include <time.h>
 #include <hw_interface/gpio_utils.h>
+#include <scope_stream/udp_sender.h>
 
 #define NANOSECONDS_IN_SECOND 1000000000
 #define INTERVAL_NS 2000000 // 2 milliseconds
@@ -134,9 +135,12 @@ int_T main(int_T argc, const char *argv[])
   export_gpio(21);
   set_direction(21, "in");
 
-
   struct timespec start, end;
   int step_counter = 0;
+
+  double stream_data[6];
+  const char *ip_address = "169.254.49.60";
+  setup_udp(ip_address);
 
   while (rtmGetErrorStatus(mechatronic_system_M) == (NULL)) {
     
@@ -144,12 +148,19 @@ int_T main(int_T argc, const char *argv[])
 
     printf("---- Step %d ----\n", step_counter);
     rt_OneStep();
+
+    stream_data[0] = (double)mechatronic_system_U.Ug;
+    stream_data[1] = (double)mechatronic_system_Y.motor_current;
+    stream_data[2] = (double)mechatronic_system_Y.shaft_pos;
+    stream_data[3] = (double)mechatronic_system_Y.shaft_vel;
+    stream_data[4] = (double)mechatronic_system_Y.mass_pos;
+    stream_data[5] = (double)mechatronic_system_Y.mass_vel;
+
+    udp_send_data(stream_data, 6);
+
     step_counter++;
-
     clock_gettime(CLOCK_MONOTONIC, &end);
-
     long long elapsed_ns = (end.tv_sec - start.tv_sec) * NANOSECONDS_IN_SECOND + (end.tv_nsec - start.tv_nsec);
-
     printf("Computation took %lld [ns]\n", elapsed_ns);
     printf("Percent : %.2f\n\n\n", ((float)elapsed_ns/(float)INTERVAL_NS)*100.0);
 
@@ -160,6 +171,7 @@ int_T main(int_T argc, const char *argv[])
 
   /* Terminate model */
   mechatronic_system_terminate();
+  close_udp();
   return 0;
 }
 
