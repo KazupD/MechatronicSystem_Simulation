@@ -22,6 +22,12 @@ generated_code_lagrange/**
 !generated_code_lagrange/hw_interface/
 !generated_code_lagrange/hw_interface/**
 
+!generated_code_simscape/scope_stream/
+!generated_code_simscape/scope_stream/**
+
+!generated_code_lagrange/scope_stream/
+!generated_code_lagrange/scope_stream/**
+
 !generated_code_simscape/makefile.mk
 !generated_code_simscape/ert_main.c
 !generated_code_simscape/mechatronic_system.c

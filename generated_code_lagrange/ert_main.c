@@ -29,7 +29,9 @@
 #include <math.h>
 #include <time.h>
 #include <hw_interface/gpio_utils.h>
+#include <scope_stream/udp_sender.h>
 
+#define clear_terminal() printf("\033[H\033[J")
 
 #define NANOSECONDS_IN_SECOND 1000000000
 #define INTERVAL_NS 2000000 // 2 milliseconds
@@ -129,15 +131,30 @@ int_T main(int_T argc, const char *argv[])
 
   struct timespec start, end;
   int step_counter = 0;
+
+  double stream_data[6];
+  const char *ip_address = "169.254.49.60";
+  setup_udp(ip_address);
   
   while ((rtmGetErrorStatus(mechatronic_system_ss_M) == (NULL)) && !rtmGetStopRequested(mechatronic_system_ss_M)) {
     
     clock_gettime(CLOCK_MONOTONIC, &start);
-
+    clear_terminal();
     printf("---- Step %d ----\n", step_counter);
     rt_OneStep();
-    step_counter++;
 
+    if(step_counter%5 == 0){
+      stream_data[0] = (double)mechatronic_system_ss_U.Ug;
+      stream_data[1] = (double)mechatronic_system_ss_Y.motor_current;
+      stream_data[2] = (double)mechatronic_system_ss_Y.shaft_pos;
+      stream_data[3] = (double)mechatronic_system_ss_Y.shaft_vel;
+      stream_data[4] = (double)mechatronic_system_ss_Y.mass_pos;
+      stream_data[5] = (double)mechatronic_system_ss_Y.mass_vel;
+
+      udp_send_data(stream_data, 6);
+    }
+
+    step_counter++;
     clock_gettime(CLOCK_MONOTONIC, &end);
 
     long long elapsed_ns = (end.tv_sec - start.tv_sec) * NANOSECONDS_IN_SECOND + (end.tv_nsec - start.tv_nsec);
@@ -152,6 +169,7 @@ int_T main(int_T argc, const char *argv[])
 
   /* Terminate model */
   mechatronic_system_ss_terminate();
+  close_udp();
   return 0;
 }
 

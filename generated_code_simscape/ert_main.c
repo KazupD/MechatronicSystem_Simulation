@@ -32,6 +32,8 @@
 #include <hw_interface/gpio_utils.h>
 #include <scope_stream/udp_sender.h>
 
+#define clear_terminal() printf("\033[H\033[J")
+
 #define NANOSECONDS_IN_SECOND 1000000000
 #define INTERVAL_NS 2000000 // 2 milliseconds
 
@@ -145,18 +147,20 @@ int_T main(int_T argc, const char *argv[])
   while (rtmGetErrorStatus(mechatronic_system_M) == (NULL)) {
     
     clock_gettime(CLOCK_MONOTONIC, &start);
-
+    clear_terminal();
     printf("---- Step %d ----\n", step_counter);
     rt_OneStep();
 
-    stream_data[0] = (double)mechatronic_system_U.Ug;
-    stream_data[1] = (double)mechatronic_system_Y.motor_current;
-    stream_data[2] = (double)mechatronic_system_Y.shaft_pos;
-    stream_data[3] = (double)mechatronic_system_Y.shaft_vel;
-    stream_data[4] = (double)mechatronic_system_Y.mass_pos;
-    stream_data[5] = (double)mechatronic_system_Y.mass_vel;
+    if(step_counter%5 == 0){
+      stream_data[0] = (double)mechatronic_system_U.Ug;
+      stream_data[1] = (double)mechatronic_system_Y.motor_current;
+      stream_data[2] = (double)mechatronic_system_Y.shaft_pos;
+      stream_data[3] = (double)mechatronic_system_Y.shaft_vel;
+      stream_data[4] = (double)mechatronic_system_Y.mass_pos;
+      stream_data[5] = (double)mechatronic_system_Y.mass_vel;
 
-    udp_send_data(stream_data, 6);
+      udp_send_data(stream_data, 6);
+    }
 
     step_counter++;
     clock_gettime(CLOCK_MONOTONIC, &end);
