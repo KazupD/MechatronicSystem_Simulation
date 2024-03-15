@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #define PWM_CHIP_PATH_0 "/sys/class/pwm/pwmchip0"
 #define PWM_CHIP_PATH_1 "/sys/class/pwm/pwmchip1"
 #define PWM_PIN_MAX_LEN 2

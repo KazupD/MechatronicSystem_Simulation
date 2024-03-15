@@ -30,12 +30,14 @@
 #include <math.h>
 #include <time.h>
 #include <hw_interface/gpio_utils.h>
+#include <hw_interface/spi_utils.h>
 #include <scope_stream/udp_sender.h>
 
 #define clear_terminal() printf("\033[H\033[J")
 
 #define NANOSECONDS_IN_SECOND 1000000000
 #define INTERVAL_NS 2000000 // 2 milliseconds
+#define ARRAY_SIZE 8
 
 
 struct sched_attr {
@@ -49,12 +51,14 @@ struct sched_attr {
     uint64_t sched_period;
 };
 
+float spi_output_data[ARRAY_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+float spi_input_data[ARRAY_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+float stream_data[ARRAY_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
 void rt_OneStep(void);
 void rt_OneStep(void)
 {
   static boolean_T OverrunFlag = false;
-
 
   /* Check for overrun */
   if (OverrunFlag) {
@@ -65,36 +69,56 @@ void rt_OneStep(void)
   OverrunFlag = true;
 
   /* Set model inputs here */
-
-
-  if(read_value(21) == 1){
-    mechatronic_system_U.Ug = mechatronic_system_U.Ug_max;
+  if(spi_input_data[0] == 1.0){
+    mechatronic_system_U.Ug = spi_input_data[1];
   }
   else{
-    mechatronic_system_U.Ug = 0.0;
+    if(read_value(21) == 1){mechatronic_system_U.Ug = mechatronic_system_U.Ug_max;}
+    else{mechatronic_system_U.Ug = 0.0;}
   }
 
   /* Step the model */
   mechatronic_system_step();
 
   /* Get model outputs here */
+  spi_output_data[0] = (float)mechatronic_system_U.Ug;
+  spi_output_data[1] = (float)mechatronic_system_Y.motor_current;
+  spi_output_data[2] = (float)mechatronic_system_Y.shaft_pos;
+  spi_output_data[3] = (float)mechatronic_system_Y.shaft_vel;
+  spi_output_data[4] = (float)mechatronic_system_Y.shaft_acc;
+  spi_output_data[5] = (float)mechatronic_system_Y.mass_pos;
+  spi_output_data[6] = (float)mechatronic_system_Y.mass_vel;
+  spi_output_data[7] = (float)mechatronic_system_Y.mass_acc;
 
-  printf("Time %.3f [s]\n", (float)(mechatronic_system_M->Timing.clockTick0)*0.002);
+  stream_data[0] = (float)mechatronic_system_U.Ug;
+  stream_data[1] = (float)mechatronic_system_Y.motor_current;
+  stream_data[2] = (float)mechatronic_system_Y.shaft_pos;
+  stream_data[3] = (float)mechatronic_system_Y.shaft_vel;
+  stream_data[4] = (float)mechatronic_system_Y.shaft_acc;
+  stream_data[5] = (float)mechatronic_system_Y.mass_pos;
+  stream_data[6] = (float)mechatronic_system_Y.mass_vel;
+  stream_data[7] = (float)mechatronic_system_Y.mass_acc;
 
-  printf("Motor velocity %.3f [rad/s]\n", mechatronic_system_Y.motor_pos);
-  printf("Motor current %.3f [A]\n", mechatronic_system_Y.motor_current);
-  printf("Motor torque %.3f [Nm]\n\n", mechatronic_system_Y.motor_torque);
-
-  printf("Shaft pos %.3f [rad]\n", mechatronic_system_Y.shaft_pos);
-  printf("Shaft vel %.3f [rad/s]\n", mechatronic_system_Y.shaft_vel);
-  printf("Shaft acc %.3f [rad/s^2]\n\n", mechatronic_system_Y.shaft_acc);
-
-  printf("Mass pos %.3f [m]\n", mechatronic_system_Y.mass_pos);
-  printf("Mass vel %.3f [m/s]\n", mechatronic_system_Y.mass_vel);
-  printf("Mass acc %.3f [m/s^2]\n\n", mechatronic_system_Y.mass_acc);
-
-  /* Indicate task complete */
   OverrunFlag = false;
+}
+
+void print_simulation_data(){
+  printf("Sim time\t%.2f\t[s     ]\n\n", (float)(mechatronic_system_M->Timing.clockTick0)*0.002);
+  printf("Mtr  vel\t%.2f\t[rad/s ]\n", mechatronic_system_Y.motor_pos);
+  printf("Mtr  amp\t%.2f\t[A     ]\n", mechatronic_system_Y.motor_current);
+  printf("Mtr  trq\t%.2f\t[Nm    ]\n\n", mechatronic_system_Y.motor_torque);
+  printf("Shft pos\t%.2f\t[rad   ]\n", mechatronic_system_Y.shaft_pos);
+  printf("Shft vel\t%.2f\t[rad/s ]\n", mechatronic_system_Y.shaft_vel);
+  printf("Shft acc\t%.2f\t[rad/s2]\n\n", mechatronic_system_Y.shaft_acc);
+  printf("Mss  pos\t%.2f\t[m     ]\n", mechatronic_system_Y.mass_pos);
+  printf("Mss  vel\t%.2f\t[m/s   ]\n", mechatronic_system_Y.mass_vel);
+  printf("Mss  acc\t%.2f\t[m/s2  ]\n\n", mechatronic_system_Y.mass_acc);
+}
+
+void print_spi_in(){
+  printf("SPI:\t");
+  for(int i = 0; i < ARRAY_SIZE; i++){printf("%.2f\t", spi_input_data[i]);}
+  printf("\n");
 }
 
 static int sched_setattr(pid_t pid, const struct sched_attr *attr, unsigned int flags)
@@ -105,7 +129,6 @@ static int sched_setattr(pid_t pid, const struct sched_attr *attr, unsigned int 
 
 int_T main(int_T argc, const char *argv[])
 {
-  /* Unused arguments */
   (void)(argc);
   (void)(argv);
 
@@ -127,55 +150,49 @@ int_T main(int_T argc, const char *argv[])
       return 1;
   }
 
-  /* Initialize model */
+  export_gpio(21);
+  set_direction(21, "in");
+
+  spi_init();
+
+  const char *ip_address = "169.254.49.60";
+  udp_init(ip_address);
+
   mechatronic_system_initialize();
   mechatronic_system_U.Enable = 1;
   mechatronic_system_U.Mass_m = 2.0;
   mechatronic_system_U.Ug_max = 24.0;
 
-
-  export_gpio(21);
-  set_direction(21, "in");
-
   struct timespec start, end;
   int step_counter = 0;
-
-  double stream_data[6];
-  const char *ip_address = "169.254.49.60";
-  setup_udp(ip_address);
+  long long elapsed_ns;
 
   while (rtmGetErrorStatus(mechatronic_system_M) == (NULL)) {
     
     clock_gettime(CLOCK_MONOTONIC, &start);
     clear_terminal();
-    printf("---- Step %d ----\n", step_counter);
     rt_OneStep();
 
-    if(step_counter%5 == 0){
-      stream_data[0] = (double)mechatronic_system_U.Ug;
-      stream_data[1] = (double)mechatronic_system_Y.motor_current;
-      stream_data[2] = (double)mechatronic_system_Y.shaft_pos;
-      stream_data[3] = (double)mechatronic_system_Y.shaft_vel;
-      stream_data[4] = (double)mechatronic_system_Y.mass_pos;
-      stream_data[5] = (double)mechatronic_system_Y.mass_vel;
+    spi_transfer(spi_output_data, spi_input_data);
+    
+    if(step_counter%5 == 0){udp_send_data(stream_data, 8);}
 
-      udp_send_data(stream_data, 6);
-    }
+    print_simulation_data();
+    print_spi_in();
 
     step_counter++;
     clock_gettime(CLOCK_MONOTONIC, &end);
-    long long elapsed_ns = (end.tv_sec - start.tv_sec) * NANOSECONDS_IN_SECOND + (end.tv_nsec - start.tv_nsec);
-    printf("Computation took %lld [ns]\n", elapsed_ns);
-    printf("Percent : %.2f\n\n\n", ((float)elapsed_ns/(float)INTERVAL_NS)*100.0);
+    elapsed_ns = (end.tv_sec - start.tv_sec) * NANOSECONDS_IN_SECOND + (end.tv_nsec - start.tv_nsec);
+    printf("Time demand : %lld\t[ns]\n", elapsed_ns);
+    printf("Percent     : %.2f\t[% ]\n\n", ((float)elapsed_ns/(float)INTERVAL_NS)*100.0);
 
     fflush(0);
     sched_yield();
 
   }
 
-  /* Terminate model */
   mechatronic_system_terminate();
-  close_udp();
+  udp_close();
+  spi_close();
   return 0;
 }
-

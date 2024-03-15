@@ -10,8 +10,8 @@
 
 #define PORT 8080
 
-void setup_udp(const char *ip_address);
-void udp_send_data(double *data, size_t num_elements);
-void close_udp();
+void udp_init(const char *ip_address);
+void udp_send_data(float *data, size_t num_elements);
+void udp_close();
 
 #endif

@@ -1,3 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+
 #define GPIO_EXPORT_FILE "/sys/class/gpio/export"
 #define GPIO_UNEXPORT_FILE "/sys/class/gpio/unexport"
 

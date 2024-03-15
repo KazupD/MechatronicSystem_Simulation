@@ -1,9 +1,4 @@
 #include "gpio_utils.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
 
 void export_gpio(int gpio_pin) {
     FILE *export_fd = fopen(GPIO_EXPORT_FILE, "w");
@@ -16,7 +11,6 @@ void export_gpio(int gpio_pin) {
     fclose(export_fd);
 }
 
-// Function to unexport a GPIO pin
 void unexport_gpio(int gpio_pin) {
     FILE *unexport_fd = fopen(GPIO_UNEXPORT_FILE, "w");
     if (unexport_fd == NULL) {
@@ -28,8 +22,7 @@ void unexport_gpio(int gpio_pin) {
     fclose(unexport_fd);
 }
 
-// Function to set the direction of the GPIO pin (in or out)
-void set_direction(int gpio_pin, const char *direction) {
+void set_direction(int gpio_pin, const char *direction) { // "in" or "out"
     char file_path[128];
     snprintf(file_path, sizeof(file_path), "/sys/class/gpio/gpio%d/direction", gpio_pin);
     
@@ -43,7 +36,6 @@ void set_direction(int gpio_pin, const char *direction) {
     fclose(direction_fd);
 }
 
-// Function to write a value to the GPIO pin
 void write_value(int gpio_pin, int value) {
     char file_path[128];
     snprintf(file_path, sizeof(file_path), "/sys/class/gpio/gpio%d/value", gpio_pin);
@@ -60,29 +52,24 @@ void write_value(int gpio_pin, int value) {
 
 int read_value(int gpio_pin) {
     char file_path[128];
-    char value_str[3]; // To store the read value as a string
+    char value_str[3];
     int value;
 
-    // Form the file path for the value of the GPIO pin
     snprintf(file_path, sizeof(file_path), "/sys/class/gpio/gpio%d/value", gpio_pin);
 
-    // Open the value file
     FILE *value_fd = fopen(file_path, "r");
     if (value_fd == NULL) {
         perror("Error reading GPIO value");
         exit(EXIT_FAILURE);
     }
 
-    // Read the value as a string
     if (fgets(value_str, sizeof(value_str), value_fd) == NULL) {
         perror("Error reading GPIO value");
         exit(EXIT_FAILURE);
     }
 
-    // Convert the string value to an integer
     value = atoi(value_str);
 
-    // Close the file
     fclose(value_fd);
 
     return value;
