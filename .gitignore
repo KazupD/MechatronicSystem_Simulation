@@ -37,3 +37,14 @@ generated_code_lagrange/**
 !generated_code_lagrange/ert_main.c
 !generated_code_lagrange/mechatronic_system_ss.c
 !generated_code_lagrange/mechatronic_system_ss.h
+
+
+Controller_F429/Debug/
+spi_slave_L55/Debug/
+
+Controller_F429/Controller_F429 Debug.launch
+.vscode/*
+spi_slave_L55/spi_slave_L55 Debug.launch
+.vscode/*
+
+PortMap.xlsx
