@@ -1,5 +1,11 @@
 
 *.slxc
+*.dep
+*.hex
+*.bat
+*.rsp
+*.dmr
+*.map
 
 packngo_buffer_simscape
 packngo_buffer_simscape/**

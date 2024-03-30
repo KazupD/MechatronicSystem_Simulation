@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "controller.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -153,6 +154,13 @@ int main(void)
 
   HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);   // Duty measurement - main channel
   HAL_TIM_IC_Start(&htim4, TIM_CHANNEL_2); // Duty measurement - indirect channel
+
+
+  controller_initialize();
+  controller_U.Ki = 5.0;
+  controller_U.Ug_max_c = voltage_max;
+  controller_U.h_ref = 0.0;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -545,6 +553,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
 		motor_speed_Y = encoder_speed*enc_multiplier;
 		mass_speed_Y = motor_speed_Y*r_shaft;
+
+		controller_U.mot_amp = motor_current_Y;
+		controller_U.shft_pos = motor_position_Y;
+		controller_U.shft_vel = motor_speed_Y;
+		controller_U.m_pos = mass_position_Y;
+		controller_U.m_vel = mass_speed_Y;
+
+		controller_step();
+
+		voltage_U = controller_Y.Ug_U;
 
 		TIM3->CCR1 = (int)(v_out_offset + v_out_slope*voltage_U);
 
