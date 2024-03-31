@@ -6,6 +6,7 @@
 *.rsp
 *.dmr
 *.map
+*.drawio
 
 packngo_buffer_simscape
 packngo_buffer_simscape/**
