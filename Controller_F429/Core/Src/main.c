@@ -160,7 +160,7 @@ int main(void)
 
 
   controller_initialize();
-  controller_U.Ki = 5.0;
+  controller_U.Ki = 7.5;
   controller_U.Ug_max_c = voltage_max;
   controller_U.h_ref = 0.0;
 
@@ -175,8 +175,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 		HAL_Delay(20);
-		HAL_ADC_Start_IT(&hadc1);
-		HAL_ADC_Start_IT(&hadc2);
+
   }
   /* USER CODE END 3 */
 }
@@ -612,6 +611,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
 		motor_speed_Y = encoder_speed*enc_multiplier;
 		mass_speed_Y = motor_speed_Y*r_shaft;
+
+		HAL_ADC_Start_IT(&hadc1);
+		HAL_ADC_Start_IT(&hadc2);
 
 		controller_U.mot_amp = motor_current_Y;
 		controller_U.shft_pos = motor_position_Y;
