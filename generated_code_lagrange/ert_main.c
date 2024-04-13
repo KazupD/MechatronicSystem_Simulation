@@ -38,7 +38,7 @@
 #define NANOSECONDS_IN_SECOND 1000000000
 #define INTERVAL_NS 2000000 // 2 milliseconds
 #define ARRAY_SIZE 8
-
+#define TS 0.002
 
 struct sched_attr {
     uint32_t size;
@@ -54,6 +54,7 @@ struct sched_attr {
 float spi_output_data[ARRAY_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 float spi_input_data[ARRAY_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 float stream_data[ARRAY_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+float rtcheck_data[1] = {0.0};
 
 void rt_OneStep(void);
 void rt_OneStep(void)
@@ -103,7 +104,7 @@ void rt_OneStep(void)
 }
 
 void print_simulation_data(){
-  printf("Sim time\t%.2f\t[s     ]\n\n", (float)(mechatronic_system_ss_M->Timing.clockTick0)*0.002);
+  printf("Sim time\t%.2f\t[s     ]\n\n", (float)(mechatronic_system_ss_M->Timing.clockTick0)*TS);
   printf("Mtr  amp\t%.2f\t[A     ]\n", mechatronic_system_ss_Y.motor_current);
   printf("Shft pos\t%.2f\t[rad   ]\n", mechatronic_system_ss_Y.shaft_pos);
   printf("Shft vel\t%.2f\t[rad/s ]\n", mechatronic_system_ss_Y.shaft_vel);
@@ -153,6 +154,7 @@ int_T main(int_T argc, const char *argv[])
 
   const char *ip_address = "169.254.49.60";
   udp_init(ip_address);
+  udp_init_rtcheck(ip_address);
 
   mechatronic_system_ss_initialize();
   mechatronic_system_ss_U.Enable = 1;
@@ -170,7 +172,18 @@ int_T main(int_T argc, const char *argv[])
 
     spi_transfer(spi_output_data, spi_input_data);
     
-    if(step_counter%5 == 0){udp_send_data(stream_data, 8);}
+    if(step_counter%5 == 0 && argc == 2){
+      if(strcmp(argv[1], "stream") == 0 || strcmp(argv[1], "stream+time") == 0){
+        udp_send_data(stream_data, 8);
+      }
+    }
+
+    if(step_counter%500 == 0 && argc == 2){
+      if(strcmp(argv[1], "time") == 0 || strcmp(argv[1], "stream+time") == 0){
+        rtcheck_data[0] = (float)(mechatronic_system_ss_M->Timing.clockTick0)*TS;
+        udp_send_data_rtcheck(rtcheck_data, 1);
+      }
+    }
 
     print_simulation_data();
     print_spi_in();
@@ -190,6 +203,7 @@ int_T main(int_T argc, const char *argv[])
   /* Terminate model */
   mechatronic_system_ss_terminate();
   udp_close();
+  udp_close_rtcheck();
   spi_close();
   return 0;
 }
