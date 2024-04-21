@@ -155,11 +155,9 @@ void *simulation_task(void *arg) {
             next_period.tv_nsec -= NANOSECONDS_IN_SECOND;
         }
 
-        // Place your numerical computation here
-        // Ensure that it completes within the interval duration to maintain timing
+        // Task begins
        
         clock_gettime(CLOCK_MONOTONIC, &start);
-        //clear_terminal();
         rt_OneStep();
 
         spi_transfer(spi_output_data, spi_input_data);
@@ -185,8 +183,9 @@ void *simulation_task(void *arg) {
         elapsed_ns = (end.tv_sec - start.tv_sec) * NANOSECONDS_IN_SECOND + (end.tv_nsec - start.tv_nsec);
         printf("Time demand : %lld\t[ns]\n", elapsed_ns);
         printf("Percent     : %.2f\t[% ]\n\n", ((float)elapsed_ns/(float)INTERVAL_NS)*100.0);
-        
 
+        // Task ends
+        
         // Sleep until the next period
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_period, NULL);
     }

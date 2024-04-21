@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <linux/sched.h>
+#include <pthread.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <math.h>
@@ -40,21 +41,15 @@
 #define ARRAY_SIZE 8
 #define TS 0.002
 
-struct sched_attr {
-    uint32_t size;
-    uint32_t sched_policy;
-    uint64_t sched_flags;
-    int32_t sched_nice;
-    uint32_t sched_priority;
-    uint64_t sched_runtime;
-    uint64_t sched_deadline;
-    uint64_t sched_period;
-};
-
 float spi_output_data[ARRAY_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 float spi_input_data[ARRAY_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 float stream_data[ARRAY_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 float rtcheck_data[1] = {0.0};
+
+typedef struct {
+    int argc;
+    char **argv;
+} thread_arg_t;
 
 void rt_OneStep(void);
 void rt_OneStep(void)
@@ -72,10 +67,6 @@ void rt_OneStep(void)
   /* Set model inputs here */
   if(spi_input_data[0] == 1.0){
     mechatronic_system_ss_U.Ug = spi_input_data[1];
-  }
-  else{
-    if(read_value(21) == 1){mechatronic_system_ss_U.Ug = mechatronic_system_ss_U.Ug_max;}
-    else{mechatronic_system_ss_U.Ug = 0.0;}
   }
 
   /* Step the model */
@@ -118,93 +109,107 @@ void print_spi_in(){
   printf("\n");
 }
 
-static int sched_setattr(pid_t pid, const struct sched_attr *attr, unsigned int flags)
-{
-    return syscall (SYS_sched_setattr, pid, attr, flags);
+void *simulation_task(void *arg) {
+    thread_arg_t *targ = (thread_arg_t *)arg;
+    int argc = targ->argc;
+    char **argv = targ->argv;
+
+    struct timespec next_period;
+    struct sched_param param;
+
+    // Set real-time priority
+    param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &param) != 0) {
+        perror("Setting real-time priority failed");
+        return NULL;
+    }
+
+    spi_init();
+
+    const char *ip_address = "169.254.49.60";
+    udp_init(ip_address);
+    udp_init_rtcheck(ip_address);
+
+    mechatronic_system_ss_initialize();
+    mechatronic_system_ss_U.Enable = 1;
+    mechatronic_system_ss_U.Ug_max = 24.0;
+
+    struct timespec start, end;
+    int step_counter = 0;
+    long long elapsed_ns;
+
+    // Get the current time and set the next period
+    clock_gettime(CLOCK_MONOTONIC, &next_period);
+
+    while (1) {
+        next_period.tv_nsec += INTERVAL_NS;
+
+        if (next_period.tv_nsec >= NANOSECONDS_IN_SECOND) {
+            next_period.tv_sec++;
+            next_period.tv_nsec -= NANOSECONDS_IN_SECOND;
+        }
+
+        // Task begins
+       
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        rt_OneStep();
+
+        spi_transfer(spi_output_data, spi_input_data);
+        
+        if(step_counter%5 == 0 && argc == 2){
+          if(strcmp(argv[1], "stream") == 0 || strcmp(argv[1], "stream+time") == 0){
+            udp_send_data(stream_data, 8);
+          }
+        }
+
+        if(step_counter%500 == 0 && argc == 2){
+          if(strcmp(argv[1], "time") == 0 || strcmp(argv[1], "stream+time") == 0){
+            rtcheck_data[0] = (float)(mechatronic_system_ss_M->Timing.clockTick0)*TS;
+            udp_send_data_rtcheck(rtcheck_data, 1);
+          }
+        }
+
+        print_simulation_data();
+        print_spi_in();
+
+        step_counter++;
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        elapsed_ns = (end.tv_sec - start.tv_sec) * NANOSECONDS_IN_SECOND + (end.tv_nsec - start.tv_nsec);
+        printf("Time demand : %lld\t[ns]\n", elapsed_ns);
+        printf("Percent     : %.2f\t[% ]\n\n", ((float)elapsed_ns/(float)INTERVAL_NS)*100.0);
+
+        // Task ends
+        
+        // Sleep until the next period
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_period, NULL);
+    }
+
+    mechatronic_system_ss_terminate();
+    udp_close();
+    udp_close_rtcheck();
+    spi_close();
+    return NULL;
 }
 
 int_T main(int_T argc, const char *argv[])
 {
-  /* Unused arguments */
   (void)(argc);
   (void)(argv);
 
-  struct sched_attr attr;
-  memset (&attr, 0, sizeof (struct sched_attr));
+  pthread_t thread;
 
-  attr.size = sizeof (attr);
-  attr.sched_policy = SCHED_DEADLINE;
-  attr.sched_runtime = 1 * 1000 * 1000;
-  attr.sched_period = 2 * 1000 * 1000;
-  attr.sched_deadline = 1 * 1000 * 1000;
-
-  int res;
-
-  res = sched_setattr(getpid(), &attr, 0);
-  if (res < 0) {
-      printf("Scheduling failed\n");
-      perror("ERROR: ");
-      return 1;
-  }
-
-  export_gpio(21);
-  set_direction(21, "in");
-
-  spi_init();
-
-  const char *ip_address = "169.254.49.60";
-  udp_init(ip_address);
-  udp_init_rtcheck(ip_address);
-
-  mechatronic_system_ss_initialize();
-  mechatronic_system_ss_U.Enable = 1;
-  mechatronic_system_ss_U.Ug_max = 24.0;
-
-  struct timespec start, end;
-  int step_counter = 0;
-  long long elapsed_ns;
+  thread_arg_t targs;
+  targs.argc = argc;
+  targs.argv = argv;
   
-  while ((rtmGetErrorStatus(mechatronic_system_ss_M) == (NULL)) && !rtmGetStopRequested(mechatronic_system_ss_M)) {
-    
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    clear_terminal();
-    rt_OneStep();
-
-    spi_transfer(spi_output_data, spi_input_data);
-    
-    if(step_counter%5 == 0 && argc == 2){
-      if(strcmp(argv[1], "stream") == 0 || strcmp(argv[1], "stream+time") == 0){
-        udp_send_data(stream_data, 8);
-      }
-    }
-
-    if(step_counter%500 == 0 && argc == 2){
-      if(strcmp(argv[1], "time") == 0 || strcmp(argv[1], "stream+time") == 0){
-        rtcheck_data[0] = (float)(mechatronic_system_ss_M->Timing.clockTick0)*TS;
-        udp_send_data_rtcheck(rtcheck_data, 1);
-      }
-    }
-
-    print_simulation_data();
-    print_spi_in();
-
-    step_counter++;
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    long long elapsed_ns = (end.tv_sec - start.tv_sec) * NANOSECONDS_IN_SECOND + (end.tv_nsec - start.tv_nsec);
-
-    printf("Computation took %lld [ns]\n", elapsed_ns);
-    printf("Percent : %.2f\n\n\n", ((float)elapsed_ns/(float)INTERVAL_NS)*100.0);
-
-    fflush(0);
-    sched_yield();
-
+  if (pthread_create(&thread, NULL, simulation_task, &targs) != 0) {
+    perror("Failed to create thread");
+    return 1;
   }
 
-  /* Terminate model */
-  mechatronic_system_ss_terminate();
-  udp_close();
-  udp_close_rtcheck();
-  spi_close();
+  printf("Thread created\n");
+  pthread_join(thread, NULL);
+  
   return 0;
 }
 
