@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "controller.h"
+#include "shiftregdrv.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +43,7 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
+ADC_HandleTypeDef hadc3;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim3;
@@ -51,6 +53,7 @@ TIM_HandleTypeDef htim8;
 /* USER CODE BEGIN PV */
 uint16_t AD_RES_1 = 0;
 uint16_t AD_RES_2 = 0;
+uint16_t AD_RES_3 = 0;
 int32_t encoder_speed = 0;
 uint32_t clock_freq = 90*10^6;
 uint32_t ICValue = 0;
@@ -82,6 +85,17 @@ float h_in_offset;
 float i_in_slope;
 float i_in_offset;
 float i_in_correction;
+
+const float gain_max_from_adc_max = 20.0;
+const float gain_min_from_adc_min = 0.0;
+float gain_from_adc = 7.5;
+const float ref_max_from_adc_max = 5.0;
+const float ref_min_from_adc_min = 0.0;
+float ref_from_adc = 0.0;
+
+extern uint8_t display1[4];
+extern uint8_t display2[4];
+uint8_t digit_counter = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,6 +107,7 @@ static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_ADC3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -136,6 +151,7 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM8_Init();
   MX_ADC1_Init();
+  MX_ADC3_Init();
   /* USER CODE BEGIN 2 */
 
   v_out_slope = ((float)(TIM3->ARR)*0.4/voltage_max);
@@ -160,9 +176,9 @@ int main(void)
 
 
   controller_initialize();
-  controller_U.Ki = 7.5;
+  controller_U.Ki = gain_from_adc;
   controller_U.Ug_max_c = voltage_max;
-  controller_U.h_ref = 0.0;
+  controller_U.h_ref = ref_from_adc;
 
   /* USER CODE END 2 */
 
@@ -174,7 +190,48 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-		HAL_Delay(20);
+	latch_out();
+
+	update_display1(ref_from_adc);
+	update_display2(gain_from_adc);
+	switch_digit(digit_counter);
+	switch(digit_counter){
+		case 0:{
+			print_digit(display1[0], 0);
+			break;
+		}
+		case 1:{
+			print_digit(display1[1], 1);
+			break;
+		}
+		case 2:{
+			print_digit(display1[2], 0);
+			break;
+		}
+		case 3:{
+			print_digit(display1[3], 0);
+			break;
+		}
+		case 4:{
+			print_digit(display2[0], 0);
+			break;
+		}
+		case 5:{
+			print_digit(display2[1], 1);
+			break;
+		}
+		case 6:{
+			print_digit(display2[2], 0);
+			break;
+		}
+		case 7:{
+			print_digit(display2[3], 0);
+			break;
+		}
+	}
+	if(digit_counter < 7){digit_counter++;}
+	else{digit_counter = 0;}
+	HAL_Delay(2);
 
   }
   /* USER CODE END 3 */
@@ -333,6 +390,58 @@ static void MX_ADC2_Init(void)
   /* USER CODE BEGIN ADC2_Init 2 */
 
   /* USER CODE END ADC2_Init 2 */
+
+}
+
+/**
+  * @brief ADC3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC3_Init(void)
+{
+
+  /* USER CODE BEGIN ADC3_Init 0 */
+
+  /* USER CODE END ADC3_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC3_Init 1 */
+
+  /* USER CODE END ADC3_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc3.Instance = ADC3;
+  hadc3.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+  hadc3.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc3.Init.ScanConvMode = DISABLE;
+  hadc3.Init.ContinuousConvMode = DISABLE;
+  hadc3.Init.DiscontinuousConvMode = DISABLE;
+  hadc3.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc3.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc3.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc3.Init.NbrOfConversion = 1;
+  hadc3.Init.DMAContinuousRequests = DISABLE;
+  hadc3.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_13;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC3_Init 2 */
+
+  /* USER CODE END ADC3_Init 2 */
 
 }
 
@@ -567,15 +676,36 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOF, COM_LATCH_Pin|SEG_DATA_Pin|SEG_CLK_Pin|DIG_DATA_Pin
+                          |DIG_CLK_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_13|GPIO_PIN_14, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : ACCEPT_REF_Pin ACCEPT_GAIN_Pin */
+  GPIO_InitStruct.Pin = ACCEPT_REF_Pin|ACCEPT_GAIN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : COM_LATCH_Pin SEG_DATA_Pin SEG_CLK_Pin DIG_DATA_Pin
+                           DIG_CLK_Pin */
+  GPIO_InitStruct.Pin = COM_LATCH_Pin|SEG_DATA_Pin|SEG_CLK_Pin|DIG_DATA_Pin
+                          |DIG_CLK_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PG13 PG14 */
   GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14;
@@ -583,6 +713,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -594,11 +731,15 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	if(hadc == &hadc1){
 		AD_RES_1 = HAL_ADC_GetValue(&hadc1);
-		controller_U.h_ref = ((float)(AD_RES_1)/4095.0)*pos_max;
+		motor_current_Y = i_in_offset + i_in_slope*AD_RES_1 + i_in_correction;
 	}
 	if(hadc == &hadc2){
 		AD_RES_2 = HAL_ADC_GetValue(&hadc2);
-		motor_current_Y = i_in_offset + i_in_slope*AD_RES_2 + i_in_correction;
+		ref_from_adc = ((ref_max_from_adc_max - ref_min_from_adc_min)/4095.0)*(float)AD_RES_2 + ref_min_from_adc_min;
+	}
+	if(hadc == &hadc3){
+		AD_RES_3 = HAL_ADC_GetValue(&hadc3);
+		gain_from_adc = ((gain_max_from_adc_max - gain_min_from_adc_min)/4095.0)*(float)AD_RES_3 + gain_min_from_adc_min;
 	}
 }
 
@@ -614,6 +755,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
 		HAL_ADC_Start_IT(&hadc1);
 		HAL_ADC_Start_IT(&hadc2);
+		HAL_ADC_Start_IT(&hadc3);
 
 		controller_U.mot_amp = motor_current_Y;
 		controller_U.shft_pos = motor_position_Y;
@@ -649,6 +791,19 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
 		}
 	}
 	HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
+  if(GPIO_Pin == ACCEPT_REF_Pin)
+  {
+	  controller_U.h_ref = ref_from_adc;
+  }
+  if(GPIO_Pin == ACCEPT_GAIN_Pin)
+  {
+	  controller_U.Ki = gain_from_adc;
+  }
 }
 /* USER CODE END 4 */
 

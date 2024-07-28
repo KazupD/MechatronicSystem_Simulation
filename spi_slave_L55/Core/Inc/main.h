@@ -65,6 +65,22 @@ void Error_Handler(void);
 #define LED_GREEN_GPIO_Port GPIOC
 #define LED_RED_Pin GPIO_PIN_9
 #define LED_RED_GPIO_Port GPIOA
+#define ACCEPT_VMAX_Pin GPIO_PIN_0
+#define ACCEPT_VMAX_GPIO_Port GPIOD
+#define ACCEPT_VMAX_EXTI_IRQn EXTI0_IRQn
+#define ACCEPT_MASS_Pin GPIO_PIN_1
+#define ACCEPT_MASS_GPIO_Port GPIOD
+#define ACCEPT_MASS_EXTI_IRQn EXTI1_IRQn
+#define DIG_CLK_Pin GPIO_PIN_3
+#define DIG_CLK_GPIO_Port GPIOD
+#define DIG_DATA_Pin GPIO_PIN_4
+#define DIG_DATA_GPIO_Port GPIOD
+#define SEG_CLK_Pin GPIO_PIN_5
+#define SEG_CLK_GPIO_Port GPIOD
+#define SEG_DATA_Pin GPIO_PIN_6
+#define SEG_DATA_GPIO_Port GPIOD
+#define COM_LATCH_Pin GPIO_PIN_7
+#define COM_LATCH_GPIO_Port GPIOD
 #define LED_BLUE_Pin GPIO_PIN_7
 #define LED_BLUE_GPIO_Port GPIOB
 

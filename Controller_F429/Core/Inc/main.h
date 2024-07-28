@@ -59,6 +59,22 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define ACCEPT_REF_Pin GPIO_PIN_2
+#define ACCEPT_REF_GPIO_Port GPIOE
+#define ACCEPT_REF_EXTI_IRQn EXTI2_IRQn
+#define ACCEPT_GAIN_Pin GPIO_PIN_4
+#define ACCEPT_GAIN_GPIO_Port GPIOE
+#define ACCEPT_GAIN_EXTI_IRQn EXTI4_IRQn
+#define COM_LATCH_Pin GPIO_PIN_0
+#define COM_LATCH_GPIO_Port GPIOF
+#define SEG_DATA_Pin GPIO_PIN_1
+#define SEG_DATA_GPIO_Port GPIOF
+#define SEG_CLK_Pin GPIO_PIN_2
+#define SEG_CLK_GPIO_Port GPIOF
+#define DIG_DATA_Pin GPIO_PIN_3
+#define DIG_DATA_GPIO_Port GPIOF
+#define DIG_CLK_Pin GPIO_PIN_4
+#define DIG_CLK_GPIO_Port GPIOF
 
 /* USER CODE BEGIN Private defines */
 

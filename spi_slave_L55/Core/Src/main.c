@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "shiftregdrv.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,7 +53,8 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
-uint16_t AD_RES_1 = 0;
+uint16_t AD_RES_1_IN0 = 0;
+uint16_t AD_RES_1_IN1 = 0;
 uint32_t clock_freq = 110*10^6;
 uint16_t enc_phys_res = 5000;
 uint16_t enc_eval_res = 20000;
@@ -70,6 +71,7 @@ float current_max = 50.0;
 float current_min = -50.0;
 float pos_max = 5.0;
 float pos_min = 0.0;
+float mass = 2.0;
 
 float v_in_slope = 0.0;
 float v_in_offset = 0.0;
@@ -78,8 +80,20 @@ float h_out_offset = 0.0;
 float i_out_slope = 0.0;
 float i_out_offset = 0.0;
 
+const float voltage_max_from_adc_max = 24.0;
+const float voltage_max_from_adc_min = 10.0;
+float voltage_max_from_adc = 24.0;
+const float mass_from_adc_max = 10.0;
+const float mass_from_adc_min = 0.5;
+float mass_from_adc = 2.0;
+
+
 float recv_data[FLOAT_ARRAY_SIZE];
 float send_data[FLOAT_ARRAY_SIZE] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+
+extern uint8_t display1[4];
+extern uint8_t display2[4];
+uint8_t digit_counter = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -172,7 +186,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	//HAL_ADC_Start_IT(&hadc1);
+	HAL_ADC_Start_IT(&hadc1);
 
 	if(HAL_GPIO_ReadPin(BLUE_BUTTON_GPIO_Port, BLUE_BUTTON_Pin) == GPIO_PIN_SET)
 	{
@@ -185,7 +199,50 @@ int main(void)
 
 
 	HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin);
-	HAL_Delay(20);
+
+
+	latch_out();
+
+	update_display1(voltage_max_from_adc);
+	update_display2(mass_from_adc);
+	switch_digit(digit_counter);
+	switch(digit_counter){
+		case 0:{
+			print_digit(display1[0], 0);
+			break;
+		}
+		case 1:{
+			print_digit(display1[1], 1);
+			break;
+		}
+		case 2:{
+			print_digit(display1[2], 0);
+			break;
+		}
+		case 3:{
+			print_digit(display1[3], 0);
+			break;
+		}
+		case 4:{
+			print_digit(display2[0], 0);
+			break;
+		}
+		case 5:{
+			print_digit(display2[1], 1);
+			break;
+		}
+		case 6:{
+			print_digit(display2[2], 0);
+			break;
+		}
+		case 7:{
+			print_digit(display2[3], 0);
+			break;
+		}
+	}
+	if(digit_counter < 7){digit_counter++;}
+	else{digit_counter = 0;}
+	HAL_Delay(2);
   }
   /* USER CODE END 3 */
 }
@@ -265,11 +322,11 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.NbrOfConversion = 2;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
@@ -297,6 +354,15 @@ static void MX_ADC1_Init(void)
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_2;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -646,6 +712,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
@@ -653,6 +720,10 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, DIG_CLK_Pin|DIG_DATA_Pin|SEG_CLK_Pin|SEG_DATA_Pin
+                          |COM_LATCH_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
@@ -677,12 +748,34 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_RED_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : ACCEPT_VMAX_Pin ACCEPT_MASS_Pin */
+  GPIO_InitStruct.Pin = ACCEPT_VMAX_Pin|ACCEPT_MASS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : DIG_CLK_Pin DIG_DATA_Pin SEG_CLK_Pin SEG_DATA_Pin
+                           COM_LATCH_Pin */
+  GPIO_InitStruct.Pin = DIG_CLK_Pin|DIG_DATA_Pin|SEG_CLK_Pin|SEG_DATA_Pin
+                          |COM_LATCH_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
   /*Configure GPIO pin : LED_BLUE_Pin */
   GPIO_InitStruct.Pin = LED_BLUE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_BLUE_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -692,7 +785,13 @@ static void MX_GPIO_Init(void)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-    AD_RES_1 = HAL_ADC_GetValue(&hadc1);
+	if(hadc == &hadc1){
+		AD_RES_1_IN0 = HAL_ADC_GetValue(&hadc1);
+		AD_RES_1_IN1 = HAL_ADC_GetValue(&hadc1);
+
+		voltage_max_from_adc = ((voltage_max_from_adc_max - voltage_max_from_adc_min)/4095.0)*AD_RES_1_IN0 + voltage_max_from_adc_min;
+		mass_from_adc = ((mass_from_adc_max - mass_from_adc_min)/4095.0)*AD_RES_1_IN1 + mass_from_adc_min;
+	}
 }
 
 
@@ -754,6 +853,19 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 
 		}
 	}
+}
+
+void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
+{
+  if(GPIO_Pin == ACCEPT_VMAX_Pin){
+	  voltage_max = voltage_max_from_adc;
+	  voltage_min = -voltage_max;
+	  v_in_slope = voltage_max/0.4;
+	  v_in_offset = -voltage_max-v_in_slope*0.1;
+  }
+  if(GPIO_Pin == ACCEPT_MASS_Pin){
+	  mass = mass_from_adc;
+  }
 }
 
 
