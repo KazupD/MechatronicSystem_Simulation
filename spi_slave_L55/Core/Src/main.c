@@ -71,7 +71,6 @@ float current_max = 50.0;
 float current_min = -50.0;
 float pos_max = 5.0;
 float pos_min = 0.0;
-float mass = 2.0;
 
 float v_in_slope = 0.0;
 float v_in_offset = 0.0;
@@ -89,7 +88,7 @@ float mass_from_adc = 2.0;
 
 
 float recv_data[FLOAT_ARRAY_SIZE];
-float send_data[FLOAT_ARRAY_SIZE] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+float send_data[FLOAT_ARRAY_SIZE] = {1.0, 0.0, 24.0, 2.0, 1.0, 1.0, 1.0, 1.0};
 
 extern uint8_t display1[4];
 extern uint8_t display2[4];
@@ -185,8 +184,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-	HAL_ADC_Start_IT(&hadc1);
 
 	if(HAL_GPIO_ReadPin(BLUE_BUTTON_GPIO_Port, BLUE_BUTTON_Pin) == GPIO_PIN_SET)
 	{
@@ -798,41 +795,46 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
 	if(hspi == &hspi1){
 	    HAL_SPI_TransmitReceive_DMA(&hspi1, send_data, recv_data,  sizeof(recv_data));
-	}
+	    HAL_GPIO_TogglePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
 
-	if(recv_data[3] > 0.01){
-		if(rotation_enable == 0){
-			HAL_TIM_OC_Start(&htim1, TIM_CHANNEL_1);
-			HAL_TIM_OC_Start(&htim1, TIM_CHANNEL_2);
-			rotation_enable = 1;
+
+
+		if(recv_data[3] > 0.01){
+			if(rotation_enable == 0){
+				HAL_TIM_OC_Start(&htim1, TIM_CHANNEL_1);
+				HAL_TIM_OC_Start(&htim1, TIM_CHANNEL_2);
+				rotation_enable = 1;
+			}
+			TIM1->PSC = (int)(enc_multiplier/fabs(recv_data[3]))-1;
+			TIM1->CCR1 = 0.75*TIM1->ARR;
+			TIM1->CCR2 = 0.25*TIM1->ARR;
 		}
-		TIM1->PSC = (int)(enc_multiplier/fabs(recv_data[3]))-1;
-		TIM1->CCR1 = 0.75*TIM1->ARR;
-		TIM1->CCR2 = 0.25*TIM1->ARR;
-	}
-	else if(recv_data[3] < -0.01){
-		if(rotation_enable == 0){
-			HAL_TIM_OC_Start(&htim1, TIM_CHANNEL_1);
-			HAL_TIM_OC_Start(&htim1, TIM_CHANNEL_2);
-			rotation_enable = 1;
+		else if(recv_data[3] < -0.01){
+			if(rotation_enable == 0){
+				HAL_TIM_OC_Start(&htim1, TIM_CHANNEL_1);
+				HAL_TIM_OC_Start(&htim1, TIM_CHANNEL_2);
+				rotation_enable = 1;
+			}
+			TIM1->PSC = (int)(enc_multiplier/fabs(recv_data[3]))-1;
+			TIM1->CCR1 = 0.25*TIM1->ARR;
+			TIM1->CCR2 = 0.75*TIM1->ARR;
 		}
-		TIM1->PSC = (int)(enc_multiplier/fabs(recv_data[3]))-1;
-		TIM1->CCR1 = 0.25*TIM1->ARR;
-		TIM1->CCR2 = 0.75*TIM1->ARR;
-	}
-	else{
-		HAL_TIM_OC_Stop(&htim1, TIM_CHANNEL_1);
-		HAL_TIM_OC_Stop(&htim1, TIM_CHANNEL_2);
-		rotation_enable = 0;
-	}
+		else{
+			HAL_TIM_OC_Stop(&htim1, TIM_CHANNEL_1);
+			HAL_TIM_OC_Stop(&htim1, TIM_CHANNEL_2);
+			rotation_enable = 0;
+		}
 
-	if(recv_data[5] > (pos_min-0.1) && recv_data[5] < (pos_max+0.1)){
-		TIM2->CCR1 = (int)(h_out_offset + h_out_slope*recv_data[5]);
-	}
+		if(recv_data[5] > (pos_min-0.1) && recv_data[5] < (pos_max+0.1)){
+			TIM2->CCR1 = (int)(h_out_offset + h_out_slope*recv_data[5]);
+		}
 
-	if(recv_data[1] >= current_min && recv_data[1] <= current_max){
-		int dac_value = (int)(i_out_slope*recv_data[1]) + (int)(i_out_offset);
-		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_value);
+		if(recv_data[1] >= current_min && recv_data[1] <= current_max){
+			int dac_value = (int)(i_out_slope*recv_data[1]) + (int)(i_out_offset);
+			HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac_value);
+		}
+
+		HAL_ADC_Start_IT(&hadc1);
 	}
 
 }
@@ -858,13 +860,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
 {
   if(GPIO_Pin == ACCEPT_VMAX_Pin){
-	  voltage_max = voltage_max_from_adc;
-	  voltage_min = -voltage_max;
-	  v_in_slope = voltage_max/0.4;
-	  v_in_offset = -voltage_max-v_in_slope*0.1;
+	  send_data[2] = voltage_max_from_adc;
   }
   if(GPIO_Pin == ACCEPT_MASS_Pin){
-	  mass = mass_from_adc;
+	  send_data[3] = mass_from_adc;
   }
 }
 
