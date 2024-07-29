@@ -1,6 +1,6 @@
 # Compiler
 CC = gcc
-CFLAGS = -lm -I.
+CFLAGS = -lm -lpthread -I.
 
 # Source files directory
 HWDIR = hw_interface
