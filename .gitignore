@@ -55,3 +55,21 @@ spi_slave_L55/spi_slave_L55 Debug.launch
 .vscode/*
 
 PortMap.xlsx
+
+simulator_pcb/Simulator_PCB/History/**
+controller_pcb/Contrller_PCB/History/**
+
+simulator_pcb/Simulator_PCB/Gerbers/**
+controller_pcb/Contrller_PCB/Gerbers/**
+
+simulator_pcb/Simulator_PCB/PDF/**
+controller_pcb/Contrller_PCB/PDF/**
+
+simulator_pcb/Simulator_PCB/Project Logs for Simulator_PCB/**
+controller_pcb/Contrller_PCB/Project Logs for Contrller_PCB/**
+
+simulator_pcb/Simulator_PCB/Project Outputs for Simulator_PCB/**
+controller_pcb/Contrller_PCB/Project Outputs for Contrller_PCB/**
+
+simulator_pcb/Simulator_PCB/__Previews/**
+controller_pcb/Contrller_PCB/__Previews/**
