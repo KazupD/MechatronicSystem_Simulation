@@ -30,9 +30,9 @@
 #include <sys/types.h>
 #include <math.h>
 #include <time.h>
-#include <hw_interface/gpio_utils.h>
-#include <hw_interface/spi_utils.h>
-#include <scope_stream/udp_sender.h>
+#include "hw_interface/gpio_utils.h"
+#include "hw_interface/spi_utils.h"
+#include "scope_stream/udp_sender.h"
 
 #define clear_terminal() printf("\033[H\033[J")
 
