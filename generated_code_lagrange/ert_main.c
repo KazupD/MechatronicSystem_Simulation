@@ -138,6 +138,9 @@ void *simulation_task(void *arg) {
     udp_init(ip_address);
     udp_init_rtcheck(ip_address);
 
+    export_gpio(21);
+    set_direction(21, "out");
+
     mechatronic_system_ss_initialize();
     mechatronic_system_ss_U.Enable = 1;
     mechatronic_system_ss_U.Ug_max = 24.0;
@@ -158,7 +161,7 @@ void *simulation_task(void *arg) {
         }
 
         // Task begins
-       
+        write_value(21, 1);
         clock_gettime(CLOCK_MONOTONIC, &start);
         rt_OneStep();
 
@@ -187,7 +190,7 @@ void *simulation_task(void *arg) {
         printf("Percent     : %.2f\t[% ]\n\n", ((float)elapsed_ns/(float)INTERVAL_NS)*100.0);
 
         // Task ends
-        
+        write_value(21, 0);
         // Sleep until the next period
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_period, NULL);
     }
@@ -196,6 +199,7 @@ void *simulation_task(void *arg) {
     udp_close();
     udp_close_rtcheck();
     spi_close();
+    unexport_gpio(21);
     return NULL;
 }
 
